@@ -85,8 +85,8 @@ async function getGuildData() {
     var uuids = await getUuids(guildurl);
     for(var i = 0; i<uuids.length; i++) {
         var senitherurl = `https://hypixel-api.senither.com/v1/profiles/${uuids[i]}/latest`;
-        //await getData(senitherurl, options);
-        //await delay(1000);
+        await getData(senitherurl, options);
+        await delay(1000);
     }
 }
 async function compareData() {
@@ -109,4 +109,5 @@ async function compareData() {
     }
     //console.log(oldData);
 }
-compareData();
+getGuildData();
+//compareData();
