@@ -102,12 +102,12 @@ async function compareData() {
     for(var i = 0; i<newData.length; i++) {
         for(var a = 0; a<oldData.length; a++) {
             if(newData[i][0] == oldData[a][0] && newData[i][2] >= oldData[a][2]) {
-                console.log(newData[i][1]+", "+(newData[i][2]-oldData[a][2]));
+                console.log(newData[i][1]+", "+String((newData[i][2]-oldData[a][2])).substring(0, 5));
                 break;
             }
         }
     }
     //console.log(oldData);
 }
-getGuildData();
-//compareData();
+//getGuildData();
+compareData();
