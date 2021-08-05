@@ -2,7 +2,7 @@
   "name": "weightgrabber",
   "version": "1.0.0",
   "description": "Gets the weight of everyone in a guild",
-  "main": "EasyMC.js",
+  "main": "GetWeight.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
