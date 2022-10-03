@@ -1,20 +1,27 @@
-//barely any comments oh well
-//todo: add profile checker so that it takes the highest weight ironman rather than latest profile
-
+//initialize packages
 const fetch = require("node-fetch");
+const LilyWeight = require("lilyweight");
 var fs = require("fs");
 const { maxHeaderSize } = require("http");
 
-const apikey = "48b696c2-18af-4c2d-8320-35165b15f3e4";
-var guuid = "60ac425a8ea8c9bb7f6da827"; //imc
-//var guuid = "5fbea1f38ea8c9d1008d4940"; //ims
-const guildurl = `https://api.hypixel.net/guild?key=${apikey}&id=${guuid}`;
+//create apikey and guuid variables
+const apikey = "7986a6e9-aacd-4b0c-ace2-2ad580d5cd8d";
+const lily = new LilyWeight(apikey);
+var imcid = "60ac425a8ea8c9bb7f6da827"; //imc
+var imsid = "5fbea1f38ea8c9d1008d4940"; //ims
 
+//url for hypixel api
+const guildurlimc = `https://api.hypixel.net/guild?key=${apikey}&id=${imcid}`;
+const guildurlimd = `https://api.hypixel.net/guild?key=${apikey}&id=${imsid}`;
+
+//give api key for api call
 const options = {
     headers: {
         Authorization: apikey
     }
 };
+
+//delay function(because hypixel api is ratelimited to 120 calls/min)
 function delay(delayInms) {
     return new Promise(resolve => {
       setTimeout(() => {
@@ -22,13 +29,17 @@ function delay(delayInms) {
       }, delayInms);
     });
   }
+
+//grab all ironman profiles for a player
 async function getIronProfiles(uuid) {
     var ironIDs = [];
     await fetch(`https://api.hypixel.net/skyblock/profiles?key=${apikey}&uuid=${uuid}`)
         .then(res => res.json())
         .then(data => {
+            //loop through all profiles
             for(var i = 0; i<data.profiles.length; i++) {
                 try {
+                    //add their profile id to a list if it is ironman
                     if(data.profiles[i].game_mode == "ironman") {
                         ironIDs.push(data.profiles[i].profile_id);
                     }
@@ -39,29 +50,28 @@ async function getIronProfiles(uuid) {
     );
     return ironIDs;
 }
-async function getData(uuid, url, options) {
+//get data for all ironman profiles for a player
+async function getDataIMC(uuid) {
     var ironProfileIDs = await getIronProfiles(uuid);
-    fetch(url, options)
-    .then(res => res.json())
-    .then(data => {
-        var highestIronWeight = 0;
-        var highestIronID = 0;
-        for(var i = 0; i<data.data.length; i++) {
-            for(var a = 0; a<ironProfileIDs.length; a++) {
-                if(data.data[i].id == ironProfileIDs[a]) {
-                    var weight = data.data[i].weight;
-                    if(weight > highestIronWeight) {
-                        highestIronWeight = weight;
-                        highestIronID = i;
-                    }
-                }
-            }
-        }
-        console.log(String(data.data[highestIronID].id) + "," + String(data.data[highestIronID].username) + "," + 
-        String(highestIronWeight) + "," + String(data.data[highestIronID].last_save_at.date).substring(5, 10) + ",");
-    });
+    if(ironProfileIDs.length == 0) {
+        data = await lily.getWeight(uuid, true);
+        console.log(uuid + "," + String(data.username) + ",0,");
+        return;
+    }
+    var max = 0;
+    var username = "";
+    for(var i = 0; i<ironProfileIDs.length; i++) {
+        data = await lily.getProfileWeightFromUUID(uuid, ironProfileIDs[i], true);
+        username = data.username;
+        max = Math.max(max, data.total);
+    }
+    
+    console.log(uuid + "," + String(username) + "," + 
+        String(max) + ", ");
         
 }
+
+//get a list of all members in a guild(url is guildurl)
 async function getUuids(url)  {
     var uuids = [];
     await fetch(url)
@@ -73,6 +83,9 @@ async function getUuids(url)  {
     });
     return await uuids;
 }
+
+//sorting functions
+
 function sortUUID(a, b) {
     if (a[0] === b[0]) {
         return 0;
@@ -97,6 +110,9 @@ function sortWeights(a, b) {
         return (a[1] < b[1]) ? -1 : 1;
     }
 }
+
+//function to read data from a text file
+//turn the data into an arary
 async function readTextFile(filename)
 {
     var newData = [];
@@ -121,7 +137,7 @@ async function readTextFile(filename)
                     newData[playerCounter].push(currStr);
                 }
                 counter++;
-                counter%=4;
+                counter%=3;
                 currStr = "";
                 continue;
             }
@@ -131,11 +147,11 @@ async function readTextFile(filename)
      });
      return newData;
 }
-async function getGuildData() {
-    var uuids = await getUuids(guildurl);
+//pull data for everyone in a guild
+async function getGuildDataIMC() {
+    var uuids = await getUuids(guildurlimc);
     for(var i = 0; i<uuids.length; i++) {
-        var senitherurl = `https://hypixel-api.senither.com/v1/profiles/${uuids[i]}`;
-        await getData(uuids[i], senitherurl, options);
+        await getDataIMC(uuids[i]);
         await delay(2500);
     }
 }
@@ -143,21 +159,14 @@ async function compareData() {
     var oldData = await readTextFile('OldData.txt');
     var newData = await readTextFile('NewData.txt');
     await delay(4000);
-    //console.log(oldData);
     //read data text file into a 2-d array
-    newData.sort(sortUUID);
-    //for(var i = 0; i<newData.length; i++) {
-    //    console.log(newData[i][1] + ": " + newData[i][2] + "\nLast login: " + newData[i][3]);
-    //}
-    //console.log(newData);
-    oldData.sort(sortUUID);
-    //console.log(oldData);
+    newData.sort(sortWeights);
+    oldData.sort(sortWeights);
     var weightDifferences = [];
     for(var i = 0; i<newData.length; i++) {
         for(var a = 0; a<oldData.length; a++) {
-            if(newData[i][1] == oldData[a][1] && newData[i][2] >= oldData[a][2]) {
+            if(newData[i][1] == oldData[a][1] && parseInt(newData[i][2]) >= parseInt(oldData[a][2])) {
                 weightDifferences.push([newData[i][1], (newData[i][2]-oldData[a][2])]);
-                //console.log(newData[i][1]+", "+String((newData[i][2]-oldData[a][2])).substring(0, 5));
                 break;
             }
         }
@@ -166,7 +175,6 @@ async function compareData() {
     for(var i = 0; i<weightDifferences.length; i++) {
         console.log(weightDifferences[i][0]+", "+(weightDifferences[i][1].toFixed(2)));
     }
-    //console.log(oldData);
 }
 async function formatData() {
     var newData = await readTextFile('NewData.txt');
@@ -175,13 +183,14 @@ async function formatData() {
     var sum = 0;
     for(var i = 0; i<newData.length; i++) {
         sum += parseInt(newData[i][2]);
-        console.log(newData[i][1] + ": " + newData[i][2]);
+        console.log(newData.length-i + ". " + newData[i][1] + ": " + Math.floor(newData[i][2]*10)/10);
     }
     var average = sum/(newData.length);
-    console.log("Average weight: " + average.toString());
+    console.log("Average weight: " + Math.floor(average.toString()*100)/100);
 }
+
 //pulls the guild data from api. WILL TAKE ABOUT FIVE MINUTES TO RUN. 
-//getGuildData();
+//getGuildDataIMC();
 //copy paste the data in NewData.txt to OldData.txt and then copy paste the output given by getGuildData into NewData. Remember to save the files. 
 //This function will output the sorted weights for the #casuals-weights channel
 //formatData();
