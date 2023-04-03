@@ -5,14 +5,16 @@ var fs = require("fs");
 const { maxHeaderSize } = require("http");
 
 //create apikey and guuid variables
-const apikey = "7986a6e9-aacd-4b0c-ace2-2ad580d5cd8d";
+const apikey = "b524d985-5bcb-48cf-b2ad-d887b23f7528";
 const lily = new LilyWeight(apikey);
 var imcid = "60ac425a8ea8c9bb7f6da827"; //imc
+var imaid = "633b10688ea8c9eeda70db6b"  //ima
 var imsid = "5fbea1f38ea8c9d1008d4940"; //ims
 
 //url for hypixel api
 const guildurlimc = `https://api.hypixel.net/guild?key=${apikey}&id=${imcid}`;
-const guildurlimd = `https://api.hypixel.net/guild?key=${apikey}&id=${imsid}`;
+const guildurlims = `https://api.hypixel.net/guild?key=${apikey}&id=${imsid}`;
+const guildurlima = `https://api.hypixel.net/guild?key=${apikey}&id=${imaid}`;
 
 //give api key for api call
 const options = {
@@ -61,7 +63,16 @@ async function getDataIMC(uuid) {
     var max = 0;
     var username = "";
     for(var i = 0; i<ironProfileIDs.length; i++) {
-        data = await lily.getProfileWeightFromUUID(uuid, ironProfileIDs[i], true);
+        check = true;
+        while(check){
+        try{
+            data = await lily.getProfileWeightFromUUID(uuid, ironProfileIDs[i], true);
+            check = false;
+        }
+        catch(exception){
+            await delay(5000);
+        }
+    }
         username = data.username;
         max = Math.max(max, data.total);
     }
@@ -148,7 +159,7 @@ async function readTextFile(filename)
      return newData;
 }
 //pull data for everyone in a guild
-async function getGuildDataIMC() {
+async function getGuildDataIMA() {
     var uuids = await getUuids(guildurlimc);
     for(var i = 0; i<uuids.length; i++) {
         await getDataIMC(uuids[i]);
@@ -190,9 +201,9 @@ async function formatData() {
 }
 
 //pulls the guild data from api. WILL TAKE ABOUT FIVE MINUTES TO RUN. 
-//getGuildDataIMC();
+getGuildDataIMA();
 //copy paste the data in NewData.txt to OldData.txt and then copy paste the output given by getGuildData into NewData. Remember to save the files. 
 //This function will output the sorted weights for the #casuals-weights channel
 //formatData();
 //This function will output the weight differences for everyone
-compareData(); 
+//compareData(); 
