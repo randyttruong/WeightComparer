@@ -5,7 +5,7 @@ var fs = require("fs");
 const { maxHeaderSize } = require("http");
 
 //create apikey and guuid variables
-const apikey = "b524d985-5bcb-48cf-b2ad-d887b23f7528";
+const apikey = "ef525cf2-4e05-46ba-b8dd-3c235ff2aa5b";
 const lily = new LilyWeight(apikey);
 var imcid = "60ac425a8ea8c9bb7f6da827"; //imc
 var imaid = "633b10688ea8c9eeda70db6b"  //ima
@@ -35,42 +35,61 @@ function delay(delayInms) {
 //grab all ironman profiles for a player
 async function getIronProfiles(uuid) {
     var ironIDs = [];
-    await fetch(`https://api.hypixel.net/skyblock/profiles?key=${apikey}&uuid=${uuid}`)
-        .then(res => res.json())
-        .then(data => {
-            //loop through all profiles
-            for(var i = 0; i<data.profiles.length; i++) {
-                try {
-                    //add their profile id to a list if it is ironman
-                    if(data.profiles[i].game_mode == "ironman") {
-                        ironIDs.push(data.profiles[i].profile_id);
+    var check = true;
+    var fails = 0;
+    while(check && fails < 10) {
+        try {
+            await fetch(`https://api.hypixel.net/skyblock/profiles?key=${apikey}&uuid=${uuid}`)
+                .then(res => res.json())
+                .then(data => {
+                    if(data.profiles === null) {
+                        return null;
+                    }
+                    //loop through all profiles
+                    for(var i = 0; i<data.profiles.length; i++) {
+                        try {
+                            //add their profile id to a list if it is ironman
+                            if(data.profiles[i].game_mode == "ironman") {
+                                ironIDs.push(data.profiles[i].profile_id);
+                            }
+                        }
+                        catch(e) {};
                     }
                 }
-                catch(e) {};
-            }
+            );
+            check = false;
         }
-    );
+        catch(exception) {
+            fails++;
+            await delay(5000);
+        }
+    }
     return ironIDs;
 }
 //get data for all ironman profiles for a player
 async function getDataIMC(uuid) {
     var ironProfileIDs = await getIronProfiles(uuid);
     if(ironProfileIDs.length == 0) {
-        data = await lily.getWeight(uuid, true);
-        console.log(uuid + "," + String(data.username) + ",0,");
+        await fetch(`https://sessionserver.mojang.com/session/minecraft/profile/${uuid}`)
+                .then(res => res.json())
+                .then(data => {
+                    console.log(uuid + "," + data.name + ",0," + '# No profiles found -- has this person logged in since the May 16 maintenance?');
+            });
         return;
     }
     var max = 0;
     var username = "";
     for(var i = 0; i<ironProfileIDs.length; i++) {
         check = true;
-        while(check){
+        var fails = 0;
+        while(check && fails < 10){
         try{
             data = await lily.getProfileWeightFromUUID(uuid, ironProfileIDs[i], true);
             check = false;
         }
         catch(exception){
             await delay(5000);
+            fails++;
         }
     }
         username = data.username;
@@ -88,6 +107,11 @@ async function getUuids(url)  {
     await fetch(url)
     .then(res => res.json())
     .then(data => {
+        if(data.success == false) {
+            console.log('Program FAILED')
+            console.log(data.cause)
+            throw new Error()
+        }
         for(var i = 0; i<data.guild.members.length; i++) {
             uuids.push(data.guild.members[i].uuid);
         }
@@ -145,7 +169,9 @@ async function readTextFile(filename)
                     playerCounter++;
                 }
                 else {
-                    newData[playerCounter].push(currStr);
+                    if(dataStr.charAt(i) != '#') {
+                        newData[playerCounter].push(currStr);
+                    }
                 }
                 counter++;
                 counter%=3;
