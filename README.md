@@ -1,10 +1,18 @@
 # WeightComparer
 
-Gets the lily weight of everyone in Ironman Casuals
+## Files: 
+```
+/src/ - Folder for all source code 
+/src/lib/ - Folder for all libraries 
+/src/index.js - Main/entrypoint file 
+```
 
-Can also compare the weights of everyone in Ironman Casuals with a dataset from a prior time
+## Description 
+`WeightComprarer` is a utility for getting the `lily weight` of everyone in Ironman Casuals. 
 
-How to use: 
+`WeightComprarer` can also compare the weights of everyone in Ironman Casuals with a dataset from a prior time. 
+
+# Tutorial: 
 1. Clone the repository
 2. To get new data from the Hypixel API, call getGuildDataIMC
 3. Copy paste the data printed to the console into either OldData.txt or NewData.txt to use the data in compareData
