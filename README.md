@@ -1,5 +1,14 @@
 # WeightComparer
 
+## TODO 
+- [x] - Finished creating `/src/index.js` 
+- [x] - Finished refactoring `getIronProfiles`, `getDataIMC`, `getUuids`, and all `Sort` 
+- [ ] - Refactor `readTextFile` 
+- [ ] - Refactor `compareData` 
+- [ ] - Refactor `formatData`
+- [ ] - Add CLI functionality 
+- [ ] - Create CLI functionality
+
 ## Files: 
 ```
 /src/ - Folder for all source code 
